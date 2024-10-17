@@ -1,0 +1,42 @@
+version: '3.8'
+
+
+services:
+
+  db:
+    image: postgres:15
+    container_name: db
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_HOST}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS}
+      POSTGRES_HOST_AUTH_METHOD: 'password'
+    restart: always
+    env_file:
+      - .env
+
+  app:
+    container_name: app
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - 8000:8000
+    volumes:
+      - ./app:/code/app
+      - ./alembic:/code/alembic
+    environment:
+      PYTHONPATH: '/code/app'
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+
+
+volumes:
+  postgres_data:
