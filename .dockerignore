@@ -1,0 +1,11 @@
+venv
+*/venv/
+*/.venv/
+*/venv_app/
+*/.venv_app/
+*/venv_bot/
+*/.venv_bot/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
