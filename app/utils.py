@@ -1,8 +1,5 @@
 import bcrypt, uuid
 
-from sqlalchemy.orm import Session
-
-from .models import User
 from .websocket_manager import WebSocketPool
 
 
@@ -17,14 +14,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_token() -> str:
     """Создание токена."""
+
     return str(uuid.uuid4())
-
-
-def validate_token(token: str, user_id: int, db: Session) -> bool:
-    """Проверка токена."""
-
-    user = db.query(User).filter(User.auth_token == token).first()
-    return (user and user.id == user_id)
 
 
 async def send_message(
@@ -35,6 +26,7 @@ async def send_message(
     """Отправка сообщения всем активным подключениям пользователя."""
 
     websockets = websocket_pool.connections[user_id]
+    
     for websocket in websockets:
         try:
             print(f'Отправка сообщения пользователю {user_id}: {message}')

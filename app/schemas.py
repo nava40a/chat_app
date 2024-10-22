@@ -27,8 +27,8 @@ class MessageBase(BaseModel):
 class UserBase(BaseModel):
     id: int
     username: str
-    tg_chat_id: int
-    is_subscribed_to_bot: bool 
+    tg_chat_id: int | None
+    is_subscribed_to_bot: bool
 
     model_config = ConfigDict(
         from_attributes=True
@@ -37,3 +37,9 @@ class UserBase(BaseModel):
 
 class ChatIdRequest(BaseModel):
     chat_id: int
+
+
+class UserLoginResponse(BaseModel):
+    id: int
+    username: str
+    auth_token: str

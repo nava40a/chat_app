@@ -13,7 +13,7 @@ class User(Base):
     hashed_password = Column(String)
     auth_token = Column(String, unique=True, index=True)
     tg_username = Column(String, unique=True, index=True)
-    tg_chat_id = Column(Integer, unique=True, index=True)
+    tg_chat_id = Column(Integer, unique=True, index=True, nullable=True)
     is_subscribed_to_bot = Column(BOOLEAN, default=False)
 
 
