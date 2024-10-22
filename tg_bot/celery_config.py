@@ -1,3 +1,5 @@
+import asyncio
+
 from celery import Celery
 from datetime import timedelta
 
@@ -16,5 +18,9 @@ celery_app.conf.beat_schedule = {
         'schedule': timedelta(seconds=10),
     }
 }
+
+
+async def main():
+    await celery_app.start()
 if __name__ == "__main__":
-    celery_app.start()
+    asyncio.run(main())

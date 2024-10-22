@@ -54,33 +54,39 @@ services:
       - 6379:6379
     restart: always
 
-  celery:
-    container_name: celery
-    build: ./tg_bot
-    command: celery -A tasks worker --loglevel=info
-    volumes:
-      - ./tg_bot:/code/tg_bot
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-    restart: always
-    depends_on:
-      - redis
-    env_file:
-      - .env
+  #celery:
+  #  container_name: celery
+  #  build: ./tg_bot
+  #  command: celery -A tasks worker --loglevel=info --concurrency=4
+  #  volumes:
+  #    - ./tg_bot:/code/tg_bot
+  #  environment:
+  #    - CELERY_BROKER_URL=redis://redis:6379/0
+  #  restart: always
+  #  depends_on:
+  #    - redis
+  #  env_file:
+  #    - .env
 
-  celery-beat:
-    container_name: celery_beat
-    build: ./tg_bot
-    command: celery -A tasks beat --loglevel=info
-    volumes:
-      - ./tg_bot:/code/tg_bot
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-    restart: always
-    depends_on:
-      - redis
-    env_file:
-      - .env
+  #celery-beat:
+  #  container_name: celery_beat
+  #  build: ./tg_bot
+  #  command: celery -A tasks beat --loglevel=info
+  #  volumes:
+  #    - ./tg_bot:/code/tg_bot
+  #  environment:
+  #    - CELERY_BROKER_URL=redis://redis:6379/0
+  #  restart: always
+  #  depends_on:
+  #    - redis
+  #  env_file:
+  #    - .env
+
+#  front:
+#    container_name: front
+#    build: ./front
+#    ports:
+#      - 3000:3000
 
 
 volumes:
