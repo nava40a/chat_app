@@ -10,7 +10,7 @@ logging.basicConfig(
 )
 
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-API_URL = 'http://app:8000'
+API_URL = 'http://app:8000/api'
 
 bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
@@ -20,7 +20,7 @@ async def get_user_by_tg_username(tg_username):
     """Получение пользователя по нику в телеге."""
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(f'{API_URL}/users/{tg_username}') as response:
+        async with session.get(f'{API_URL}/user/{tg_username}') as response:
             return await response.json()
 
 
@@ -30,7 +30,7 @@ async def subscribe_user(tg_username, chat_id):
     async with aiohttp.ClientSession() as session:
         data = {'chat_id': chat_id}
         async with session.post(
-            f'{API_URL}/users/{tg_username}/subscribe', json=data
+            f'{API_URL}/subscriptions/{tg_username}', json=data
         ) as response:
             if response.status == 404:
                 return

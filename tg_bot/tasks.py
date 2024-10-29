@@ -5,7 +5,7 @@ from redis import Redis
 from tg_bot.celery_config import celery_app
 
 
-API_URL = 'http://app:8000'
+API_URL = 'http://app:8000/api'
 redis_client = Redis(host='redis', port=6379, db=0)
 
 last_message_count = {}

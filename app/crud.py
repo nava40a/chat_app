@@ -42,13 +42,6 @@ def update_user_token(db: Session, user: User) -> User:
     return user
 
 
-def validate_token(token: str, user_id: int, db: Session) -> bool:
-    """Проверка токена."""
-
-    user = db.query(User).filter(User.auth_token == token).first()
-    return (user and user.id == user_id)
-
-
 def save_message(
         db: Session,
         sender_id: int,
@@ -138,7 +131,7 @@ def get_subscribed_users(db: Session) -> List[User]:
         return future.result()
 
 
-def get_users(db: Session) -> List[User]:
+def get_all_users(db: Session) -> List[User]:
     """Получить список всех пользователей."""
 
     def query_all_users(db: Session) -> List[User]:

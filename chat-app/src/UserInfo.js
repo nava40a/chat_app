@@ -1,20 +1,17 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { WebSocketContext } from './WebSocketProvider'; // Импортируйте контекст WebSocket
+import React, { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { WebSocketContext } from './WebSocketProvider';
 
 const UserInfo = () => {
-    const { id } = useParams();
     const navigate = useNavigate();
-    const ws = useContext(WebSocketContext); // Получите доступ к WebSocket
-    const [userInfo, setUserInfo] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [messages, setMessages] = useState([]);
+    const { ws } = useContext(WebSocketContext);
+    const [message, setMessage] = useState('');
+    const [incomingMessages, setIncomingMessages] = useState([]);
+    const [userName, setUserName] = useState('');
+    const [receiverName, setReceiverName] = useState('');
+    const [receiverStatus, setReceiverStatus] = useState('offline');
     const [loadingMessages, setLoadingMessages] = useState(false);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [receiverUser, setReceiverUser] = useState(null);
-    const [messageContent, setMessageContent] = useState('');
+    const [messages, setMessages] = useState([]);
 
     useEffect(() => {
         const authToken = localStorage.getItem('authToken');
@@ -23,121 +20,166 @@ const UserInfo = () => {
             return;
         }
 
-        const user = JSON.parse(localStorage.getItem('currentUser'));
-        setCurrentUser(user);
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (currentUser) {
+            setUserName(currentUser.username);
+        }
 
-        const fetchUserInfo = async () => {
-            const baseURL = 'http://localhost:8000';
-            try {
-                const response = await axios.get(`${baseURL}/users/info/${id}`, {
-                    headers: {
-                        Authorization: `Token ${authToken}`
-                    }
-                });
-                setUserInfo(response.data);
-                localStorage.setItem('receiver', JSON.stringify(response.data));
-                setReceiverUser(response.data);
-            } catch (error) {
-                setError(error.response?.data?.detail || 'Ошибка при загрузке информации о пользователе');
-            } finally {
-                setLoading(false);
+        const receiver = JSON.parse(localStorage.getItem('receiver'));
+        if (receiver) {
+            setReceiverName(receiver.username);
+            const savedStatuses = JSON.parse(localStorage.getItem('userStatuses')) || {};
+            setReceiverStatus(savedStatuses[receiver.id] || 'offline');
+
+            const savedMessages = JSON.parse(localStorage.getItem(`messages_${receiver.id}`)) || [];
+            setIncomingMessages(savedMessages);
+
+            const newMessages = JSON.parse(localStorage.getItem('newMessages')) || {};
+            if (newMessages[receiver.id]) {
+                newMessages[receiver.id] = false; // Сбрасываем статус новых сообщений
+                localStorage.setItem('newMessages', JSON.stringify(newMessages));
+            }
+        }
+
+        const handleIncomingMessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "status_update") {
+                const { user_id, status } = data;
+                if (user_id === receiver.id) {
+                    setReceiverStatus(status);
+                    const savedStatuses = JSON.parse(localStorage.getItem('userStatuses')) || {};
+                    const updatedStatuses = { ...savedStatuses, [user_id]: status };
+                    localStorage.setItem('userStatuses', JSON.stringify(updatedStatuses));
+                }
+            } else {
+                setIncomingMessages((prevMessages) => [data, ...prevMessages]);
+
+                const receiverId = receiver.id;
+                const messages = JSON.parse(localStorage.getItem(`messages_${receiverId}`)) || [];
+                messages.unshift(data);
+                localStorage.setItem(`messages_${receiverId}`, JSON.stringify(messages));
+
+                const newMessages = JSON.parse(localStorage.getItem('newMessages')) || {};
+                localStorage.setItem('newMessages', JSON.stringify(newMessages));
             }
         };
 
-        fetchUserInfo();
-    }, [id, navigate]); // Зависимости только от id и navigate
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'status_update',
+                user_id: currentUser.id,
+                status: 'online'
+            }));
 
-    useEffect(() => {
-        // Обработчик сообщений
-        if (ws) {
-            ws.onmessage = (event) => {
-                const incomingMessage = JSON.parse(event.data);
-                if (incomingMessage.receiver_id === currentUser.id || incomingMessage.sender_id === currentUser.id) {
-                    setMessages(prevMessages => [...prevMessages, incomingMessage]); // Добавляем новое сообщение в состояние
-                }
-            };
+            ws.addEventListener('message', handleIncomingMessage);
         }
 
         return () => {
-            if (ws) {
-                ws.onmessage = null; // Очистка обработчика сообщений при размонтировании
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.removeEventListener('message', handleIncomingMessage);
             }
         };
-    }, [ws, currentUser]); // Зависимости от ws и currentUser
+    }, [ws, navigate]);
 
-    const handleBackClick = () => {
-        navigate('/users');
+    const handleMessageSend = () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const receiverId = JSON.parse(localStorage.getItem('receiver')).id;
+            const messageData = {
+                sender_id: currentUser.id,
+                receiver_id: receiverId,
+                content: message,
+                created_at: new Date().toISOString()
+            };
+
+            ws.send(JSON.stringify(messageData));
+
+            setIncomingMessages((prevMessages) => [messageData, ...prevMessages]);
+
+            const messages = JSON.parse(localStorage.getItem(`messages_${receiverId}`)) || [];
+            messages.unshift(messageData);
+            localStorage.setItem(`messages_${receiverId}`, JSON.stringify(messages));
+
+            setMessage('');
+        } else {
+            console.log('Соединение не установлено');
+        }
     };
 
     const handleLoadMessages = async () => {
-        const baseURL = 'http://localhost:8000';
         setLoadingMessages(true);
+        const receiverId = JSON.parse(localStorage.getItem('receiver')).id;
 
         try {
-            const response = await axios.get(`${baseURL}/messages/${id}`, {
+            const response = await fetch(`http://localhost:8000/api/messages/${receiverId}`, {
+                method: 'GET',
                 headers: {
-                    Authorization: `Token ${localStorage.getItem('authToken')}`
+                    'Authorization': `Token ${localStorage.getItem('authToken')}`,
+                    'Content-Type': 'application/json'
                 }
             });
-            setMessages(response.data);
+
+            if (!response.ok) {
+                throw new Error('Ошибка при загрузке сообщений');
+            }
+
+            const data = await response.json();
+            setMessages(data);
         } catch (error) {
-            setError(error.response?.data?.detail || 'Ошибка при загрузке истории сообщений');
+            console.error('Ошибка при загрузке сообщений:', error);
         } finally {
             setLoadingMessages(false);
         }
     };
 
-    const handleSendMessage = () => {
-        if (ws && ws.readyState === WebSocket.OPEN && messageContent) {
-            const message = {
-                receiver_id: id,
-                content: messageContent,
-            };
-            ws.send(JSON.stringify(message)); // Отправка сообщения через WebSocket
-            setMessageContent(''); // Очистка поля ввода сообщения после отправки
-        } else if (ws.readyState !== WebSocket.OPEN) {
-            setError('Соединение WebSocket закрыто. Попробуйте снова позже.');
-        } else {
-            setError('Сообщение не может быть пустым.');
+    const handleBackToAuthPage = () => {
+        localStorage.removeItem('receiver');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userStatuses');
+        localStorage.removeItem('currentUser');
+        if (ws) {
+            ws.close();
         }
+
+        navigate('/auth');
     };
 
-    if (loading) {
-        return <p>Загрузка информации о пользователе...</p>;
-    }
+    const handleBackToUsersList = () => {
+        const receiverId = JSON.parse(localStorage.getItem('receiver')).id;
+        const newMessages = JSON.parse(localStorage.getItem('newMessages')) || {};
+        newMessages[receiverId] = false;
+        localStorage.setItem('newMessages', JSON.stringify(newMessages));
 
-    if (error) {
-        return <p>{error}</p>;
-    }
+        navigate('/users');
+    };
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h2>Информация о пользователе</h2>
-            {userInfo ? (
-                <div>
-                    <p>Имя пользователя: {userInfo.username}</p>
-                </div>
-            ) : (
-                <p>Информация о пользователе недоступна.</p>
-            )}
-            <div style={{ marginTop: '20px' }}>
-                <textarea
-                    value={messageContent}
-                    onChange={(e) => setMessageContent(e.target.value)}
-                    placeholder="Введите сообщение"
-                    rows="4"
-                    style={{ width: '100%' }}
-                />
-                <button onClick={handleSendMessage} style={{ marginTop: '10px' }}>
-                    Отправить сообщение
-                </button>
-            </div>
-            <button onClick={handleBackClick} style={{ marginTop: '20px' }}>
-                Назад к списку пользователей
+        <div style={{ padding: '20px', position: 'relative' }}>
+            <h2>Чат с пользователем {receiverName} ({receiverStatus})</h2>
+            <button onClick={handleBackToAuthPage} style={{ position: 'absolute', top: '20px', right: '20px' }}>
+                Выйти
             </button>
-            <button onClick={handleLoadMessages} style={{ marginTop: '20px' }}>
-                Загрузить историю сообщений
+            <button onClick={handleBackToUsersList} style={{ marginBottom: '20px' }}>
+                К списку пользователей
             </button>
+            <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Введите сообщение"
+                rows="4"
+                style={{ width: '100%', marginBottom: '10px' }}
+            />
+            <button onClick={handleMessageSend}>Отправить сообщение</button>
+
+            <ul style={{ marginTop: '20px' }}>
+                {incomingMessages.map((msg, index) => (
+                    <li key={index}>
+                        {msg.sender_id === JSON.parse(localStorage.getItem('currentUser')).id ? 'Вы: ' : `${receiverName}: `}
+                        {msg.content}
+                    </li>
+                ))}
+            </ul>
 
             {loadingMessages && <p>Загрузка истории сообщений...</p>}
             {messages.length > 0 && (
@@ -146,14 +188,19 @@ const UserInfo = () => {
                     <ul>
                         {messages.slice().reverse().map((message, index) => (
                             <li key={index}>
-                                <p><strong>От:</strong> {message.sender_id === currentUser.id ? currentUser.username : receiverUser ? receiverUser.username : message.sender_id}</p>
-                                <p><strong>Кому:</strong> {message.receiver_id === currentUser.id ? currentUser.username : receiverUser ? receiverUser.username : message.receiver_id}</p>
+                                <p><strong>От:</strong> {message.sender_id === JSON.parse(localStorage.getItem('currentUser')).id ? userName : receiverName}</p>
+                                <p><strong>Кому:</strong> {message.receiver_id === JSON.parse(localStorage.getItem('currentUser')).id ? userName : receiverName}</p>
                                 <p><strong>Сообщение:</strong> {message.content}</p>
+                                <p><strong>Дата:</strong> {new Date(message.created_at).toLocaleString()}</p>
                             </li>
                         ))}
                     </ul>
                 </div>
             )}
+
+            <button onClick={handleLoadMessages} style={{ marginTop: '20px' }}>
+                Загрузить историю сообщений
+            </button>
         </div>
     );
 };

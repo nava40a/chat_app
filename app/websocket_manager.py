@@ -14,11 +14,9 @@ class WebSocketPool:
             self.connections[user_id] = []
         self.connections[user_id].append(websocket)
         for other_user_id in self.connections:
-            if other_user_id != user_id:  # Не отправляем статус самому себе
+            if other_user_id != user_id:
                 status = 'online' if self.is_online(other_user_id) else 'offline'
                 await self.notify_user_status(other_user_id, status)
-
-    # Выводим состояние пула для отладки
             print(f'Подключенные пользователи: {self.connections}')
 
     async def disconnect(self, user_id: int, websocket: WebSocket):
@@ -28,17 +26,16 @@ class WebSocketPool:
             if not self.connections[user_id]:
                 await self.notify_user_status(user_id, 'offline')
                 del self.connections[user_id]
-                
-                print(f'Пользователь {user_id} отключен. Текущие подключения: {self.connections}')
-            #if user_id in self.connections and websocket in self.connections[user_id]:
-            #    self.connections[user_id].remove(websocket)
-
-        
-        # Выводим состояние пула для отладки
+                print(
+                    f'Пользователь {user_id} отключен. '
+                    'Текущие подключения: {self.connections}'
+                )
         print(f'Подключенные пользователи: {self.connections}')
 
     def is_online(self, user_id: int):
-        return user_id in self.connections and len(self.connections[user_id]) > 0
+        return (
+            user_id in self.connections and len(self.connections[user_id]) > 0
+        )
 
     async def notify_user_status(self, user_id: int, status: str):
         message = {
@@ -47,28 +44,12 @@ class WebSocketPool:
         'status': status
     }
         for other_user_id, websockets in self.connections.items():
-            if other_user_id != user_id:  # Убедитесь, что мы не отправляем уведомление инициатору
+            if other_user_id != user_id:
                 for websocket in websockets:
                     if websocket.client_state == WebSocketState.CONNECTED:
                         await websocket.send_text(json.dumps(message))
                     else:
-                        print(f'WebSocket для пользователя {other_user_id} не подключен, пропускаем отправку статуса.')
-
-
-#class WebSocketPool:
-#
-#    def __init__(self):
-#        self.connections: Dict[int, List[WebSocket]] = {}
-#
-#    async def connect(self, websocket: WebSocket, user_id: int):
-#        await websocket.accept()
-#        if user_id not in self.connections:
-#            self.connections[user_id] = []
-#        self.connections[user_id].append(websocket)
-#
-#    def disconnect(self, websocket: WebSocket, user_id: int):
-#        if user_id in self.connections and websocket in self.connections[user_id]:
-#            self.connections[user_id].remove(websocket)
-#    def is_online(self, user_id: int):
-#        return user_id in self.connections and len(self.connections[user_id]) > 0
-        
+                        print(
+                            f'WebSocket для пользователя {other_user_id} '
+                            'не подключен, сообщение о статусе не отправлено.'
+                        )

@@ -29,6 +29,7 @@ class UserBase(BaseModel):
     username: str
     tg_chat_id: int | None
     is_subscribed_to_bot: bool
+    tg_username: str
 
     model_config = ConfigDict(
         from_attributes=True
