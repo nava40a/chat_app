@@ -6,6 +6,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     tg_username: str
+    is_subscribed_to_bot: bool
 
 
 class UserLogin(BaseModel):
@@ -44,3 +45,4 @@ class UserLoginResponse(BaseModel):
     id: int
     username: str
     auth_token: str
+    is_subscribed_to_bot: bool
