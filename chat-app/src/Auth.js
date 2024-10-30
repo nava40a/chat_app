@@ -76,14 +76,6 @@ const Auth = () => {
             <button onClick={() => setIsRegistering(!isRegistering)}>
                 {isRegistering ? 'Уже зарегистрированы? Войти' : 'Еще не зарегистрированы? Зарегистрироваться'}
             </button>
-            {isRegistering && (
-                <div style={{ marginTop: '20px' }}>
-                    <p>Еще не подписаны на нашего телеграм бота? Подпишитесь, чтобы получать уведомления!</p>
-                    <a href="https://t.me/YourNotifierBot" target="_blank" rel="noopener noreferrer">
-                        <button>Подписаться на бота</button>
-                    </a>
-                </div>
-            )}
         </div>
     );
 };

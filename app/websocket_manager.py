@@ -28,7 +28,7 @@ class WebSocketPool:
                 del self.connections[user_id]
                 print(
                     f'Пользователь {user_id} отключен. '
-                    'Текущие подключения: {self.connections}'
+                    f'Текущие подключения: {self.connections}'
                 )
         print(f'Подключенные пользователи: {self.connections}')
 
@@ -51,5 +51,5 @@ class WebSocketPool:
                     else:
                         print(
                             f'WebSocket для пользователя {other_user_id} '
-                            'не подключен, сообщение о статусе не отправлено.'
+                            f'не подключен, сообщение о статусе не отправлено.'
                         )

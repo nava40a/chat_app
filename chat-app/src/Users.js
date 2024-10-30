@@ -137,6 +137,12 @@ const Users = () => {
 
     return (
         <div>
+            <div style={{ marginTop: '20px' }}>
+                <p>Еще не подписаны на нашего телеграм бота? Подпишитесь, чтобы получать уведомления!</p>
+                <a href="https://t.me/YourNotifierBot" target="_blank" rel="noopener noreferrer">
+                    <button>Подписаться на бота</button>
+                </a>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2>Список пользователей</h2>
                 <button onClick={handleLogout} style={{ marginLeft: '20px' }}>
