@@ -45,7 +45,7 @@
 
 ## Стек технологий
 - Frontend: React, WebSocket
-- Backend: FastApi, Redis, Alembic, Pydantic, SqlAlchemy, Websockets, Thread
+- Backend: FastApi, Redis, Alembic, Pydantic, SqlAlchemy, Websockets, Thread, NGINX
 - База данных: PostgreSQL
 - Контейнеризация: Docker, Docker Compose
 - Телеграм-бот: Aiogram, Celery, Redis
